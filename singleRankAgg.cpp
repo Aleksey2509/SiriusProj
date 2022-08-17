@@ -62,7 +62,7 @@ int main()
     long i, j;
     i = j = -1;
     long currentMaxSize = 1;
-    double maxTime = 2 * log(2);
+    double maxTime = 2;
     double doubleTime = 0.0;
     double currentTime = 0.0;
     // double kernelMax = kernel(currentMaxSize, currentMaxSize);
@@ -87,22 +87,22 @@ int main()
     while (currentTime < maxTime)
     {
         // printf("time = %lf\n", currentTime);
-        currentTime += 2.0 * volume / (uTree[1] * vTree[1]);
-        ifToGetPoint -= 2.0 * volume / (uTree[1] * vTree[1]);
-
-        if (ifToGetPoint < 0)
-        {
-            double sum = 0.0;
-            for (int i = 1; i < N; i++)
-                sum += i * sizes[i];
-
-            output << (currentMaxSize / sum) << " " << currentTime << std::endl;
-
-            ifToGetPoint = delta;
-        }
-
         do
         {
+            currentTime += 2.0 * volume / (uTree[1] * vTree[1]);
+            ifToGetPoint -= 2.0 * volume / (uTree[1] * vTree[1]);
+
+            if (ifToGetPoint < 0)
+            {
+                double sum = 0.0;
+                for (int i = 1; i < N; i++)
+                    sum += i * sizes[i];
+
+                output << currentTime << " " << (currentMaxSize / sum) << std::endl;
+
+                ifToGetPoint = delta;
+            }
+
             i = find(uTree, uTree [1] * (rand() + 1.0) / RAND_MAX, maxSize); // bad!!
             j = find(vTree, vTree [1] * (rand() + 1.0) / RAND_MAX, maxSize); // bad!!
 

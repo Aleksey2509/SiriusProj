@@ -14,14 +14,9 @@
 
 constexpr int arrSize = 1024 * 1024;
 
-inline double kernel (int i, int j)
-{
-    return i * j;
-}
-
 inline double updateU_I (double* uVec, int index, int numOfClasters)
 {
-    return uVec[index] = numOfClasters* 2 * std::pow(index, 0.98); 
+    return uVec[index] = numOfClasters * 2 * std::pow(index, 0.98); 
 
     // return uVec[index] = numOfClasters * index;
 }
@@ -89,34 +84,40 @@ int main()
     double delta = maxTime / 250;
     double ifToGetPoint = delta;
 
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> floatDist(-1, 0);
+
     auto start = std::chrono::high_resolution_clock::now();
     while (currentTime < maxTime)
     {
         // printf("time = %lf\n", currentTime);
-        currentTime += 2.0 * volume / (uTree[1] * vTree[1]);
-        ifToGetPoint -= 2.0 * volume / (uTree[1] * vTree[1]);
-
-        if (ifToGetPoint < 0)
-        {
-            printf("outing a point; time = %lf\n", currentTime);
-            double sum = 0.0;
-            output << currentTime << " ";
-            for (int it = 1; it < maxSize; it++)
-                sum += it * it * (sizes[it] + 0.0) / volume;
-
-            output << (currentMaxSize / sum) << std::endl;
-
-            ifToGetPoint = delta;
-        }
-
         do
         {
-            i = find(uTree, uTree [1] * (rand() + 1.0) / RAND_MAX, maxSize); // bad!!
-            j = find(vTree, vTree [1] * (rand() + 1.0) / RAND_MAX, maxSize); // bad!!
+
+            currentTime += 2.0 * volume / (uTree[1] * vTree[1]);
+            ifToGetPoint -= 2.0 * volume / (uTree[1] * vTree[1]);
+
+            if (ifToGetPoint < 0)
+            {
+                printf("outing a point; time = %lf\n", currentTime);
+                double sum = 0.0;
+                output << currentTime << " ";
+                for (int it = 1; it < maxSize; it++)
+                    sum += it * it * (sizes[it] + 0.0) / volume;
+
+                output << (currentMaxSize / sum) << std::endl;
+
+                ifToGetPoint = delta;
+            }
+
+        
+            i = find(uTree, uTree [1] * -floatDist(gen), maxSize); // bad!!
+            j = find(vTree, vTree [1] * -floatDist(gen), maxSize); // bad!!
 
             // printf("finding i = %d, j = %d\n", i, j);
 
-            if ((i == j) && ((sizes[i] * (rand() + 1.0) / RAND_MAX) <= 1))
+            if ((i == j) && ((sizes[i] * -floatDist(gen)) <= 1))
             {
                 // printf("continuing\n");
                 i = j = -1;
@@ -124,7 +125,7 @@ int main()
             }
         } while((i == -1) && (j == -1));
 
-        double whichInteraction = (rand() + 1.0) / RAND_MAX;
+        double whichInteraction = -floatDist(gen);
 
         if ((whichInteraction >= (lambda / (lambda + 1))) || ((i == j) && (i == 1)))
         {
@@ -211,6 +212,12 @@ int main()
 
     std::cout << "kmax = " << currentMaxSize << " currentTime = " << currentTime << " volume = " << volume
               << " worked for " << duration.count()  << " double time = " << doubleTime << " Moment_0: " << N << std::endl;
+
+    for (int it = 0; it < 15; it++)
+    {
+        std::cout << sizes[it] << " ";
+    }
+    std::cout << std::endl;
 
     free(uVec);
     free(vVec);
