@@ -12,5 +12,5 @@ singleRankAgg: singleRankAgg.cpp segmentTree.hpp
 treeTest: treeTest.cpp segmentTree.hpp
 	$(CXX) $(CXXFLAGS) treeTest.cpp -o test
 
-oscilation: oscilation.cpp segmentTree.hpp
-	$(CXX) $(CXXFLAGS) oscilation.cpp -o oscilation
+singleRankFrag: singleRankFrag.cpp segmentTree.hpp
+	$(CXX) $(CXXFLAGS) singleRankFrag.cpp -o singleRankFrag
