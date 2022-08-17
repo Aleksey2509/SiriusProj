@@ -7,57 +7,37 @@
 #include <chrono>
 #include <iostream>
 #include <fstream>
+#include <vector>
 #include "unistd.h"
 
-#include "segmentTree.hpp"
+#include "vecSegmentTree.hpp"
 
 
 constexpr int arrSize = 1024 * 1024;
 
-inline double updateU_I (double* uVec, int index, int numOfClasters)
+inline double updateU_I (std::vector <double>& uVec, int index, int numOfClasters)
 {
     return uVec[index] = numOfClasters * 2 * std::pow(index, 0.98); 
 
     // return uVec[index] = numOfClasters * index;
 }
 
-inline double updateV_I (double* vVec, int index, int numOfClasters)
+inline double updateV_I (std::vector <double>& vVec, int index, int numOfClasters)
 {
     return vVec[index] = numOfClasters;
 
     // return vVec[index] = numOfClasters * index;
 }
 
-long* initSizes()
-{
-    long* sizes = (long*)calloc(arrSize + 1, sizeof(long));
-    sizes[1] = arrSize;
-
-    return sizes;
-}
-
-double* inituVec()
-{
-    double* uVec = (double*)calloc(arrSize + 1, sizeof(double));
-    uVec[1] = arrSize * 2;
-
-    return uVec;
-}
-
-double* initvVec()
-{
-    double* vVec = (double*)calloc(arrSize + 1, sizeof(double));
-    vVec[1] = arrSize;
-
-    return vVec;
-}
-
 int main()
 
 {
-    long* sizes = initSizes();
-    double* uVec = inituVec();
-    double* vVec = initvVec();
+    std::vector <long> sizes(arrSize + 1);
+    sizes[1] = arrSize;
+    std::vector <double> uVec(arrSize + 1);
+    uVec[1] = arrSize * 2;
+    std::vector <double> vVec(arrSize + 1);
+    vVec[1] = arrSize;
 
     long i, j;
     i = j = -1;
@@ -73,8 +53,12 @@ int main()
 
     srand(time(NULL));
 
-    double* uTree = segmentTreeCtor(uVec, arrSize);
-    double* vTree = segmentTreeCtor(vVec, arrSize);
+    std::vector <double> uTree(4 * arrSize + 4);
+    std::vector <double> vTree(4 * arrSize + 4);
+
+    // buildSubTree(segmentTree, values, 1, 0, size - 1);
+    buildSubTree(uTree, uVec, 1, 0, arrSize - 1);
+    buildSubTree(vTree, vVec, 1, 0, arrSize - 1);
 
     std::ofstream output;
     output.open("oscilation.txt");
@@ -112,8 +96,8 @@ int main()
             }
 
         
-            i = find(uTree, uTree [1] * -floatDist(gen), maxSize); // bad!!
-            j = find(vTree, vTree [1] * -floatDist(gen), maxSize); // bad!!
+            i = find(uTree, uTree [1] * (-floatDist(gen)), maxSize); // bad!!
+            j = find(vTree, vTree [1] * (-floatDist(gen)), maxSize); // bad!!
 
             // printf("finding i = %d, j = %d\n", i, j);
 
@@ -137,9 +121,9 @@ int main()
             {
                 int oldSize = maxSize;
                 maxSize *= 2;
-                sizes = (long *)realloc(sizes, maxSize * sizeof(long));
-                uVec = (double *)realloc(uVec, maxSize * sizeof(double));
-                vVec = (double *)realloc(vVec, maxSize * sizeof(double));
+                sizes.reserve(maxSize);
+                uVec.reserve(maxSize);
+                vVec.reserve(maxSize);
                 for (int it = 0; it < oldSize; it++)
                 {
                     sizes[it + oldSize] = 0;
@@ -147,10 +131,12 @@ int main()
                     vVec[it + oldSize] = 0;
                 }
 
-                segmentTreeDtor(vTree);
-                segmentTreeDtor(uTree);
-                uTree = segmentTreeCtor(uVec, maxSize);
-                vTree = segmentTreeCtor(vVec, maxSize);
+                uTree.reserve(4 * maxSize + 4);
+                vTree.reserve(4 * maxSize + 4);
+
+                buildSubTree(uTree, uVec, 1, 0, maxSize - 1);
+                buildSubTree(vTree, vVec, 1, 0, maxSize - 1);
+
                 // throw "cry baby";
             }
 
@@ -216,14 +202,10 @@ int main()
     for (int it = 0; it < 15; it++)
     {
         std::cout << sizes[it] << " ";
+        std::cout << uVec[it] << " ";
+        std::cout << vVec[it] << " " << std::endl;
     }
+
     std::cout << std::endl;
-
-    free(uVec);
-    free(vVec);
-
-    segmentTreeDtor(uTree);
-    segmentTreeDtor(vTree);
-    free(sizes);
     output.close();
 }
