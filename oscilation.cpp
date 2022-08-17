@@ -11,28 +11,31 @@
 
 #include "segmentTree.hpp"
 
-constexpr int INDEX_POISON = -1;
 
-constexpr int arrSize = 1024 * 32;
+constexpr int arrSize = 1024 * 1024;
 
 inline double kernel (int i, int j)
 {
-    return 2 * std::pow(i, 0.98);
+    return i * j;
 }
 
 inline double updateU_I (double* uVec, int index, int numOfClasters)
 {
-    return numOfClasters * index;// * 2 * std::pow(index, 0.98);
+    return uVec[index] = numOfClasters* 2 * std::pow(index, 0.98); 
+
+    // return uVec[index] = numOfClasters * index;
 }
 
-inline double updateV_I (double* uVec, int index, int numOfClasters)
+inline double updateV_I (double* vVec, int index, int numOfClasters)
 {
-    return numOfClasters * index;
+    return vVec[index] = numOfClasters;
+
+    // return vVec[index] = numOfClasters * index;
 }
 
-int* initSizes()
+long* initSizes()
 {
-    int* sizes = (int*)calloc(arrSize + 1, sizeof(int));
+    long* sizes = (long*)calloc(arrSize + 1, sizeof(long));
     sizes[1] = arrSize;
 
     return sizes;
@@ -41,7 +44,7 @@ int* initSizes()
 double* inituVec()
 {
     double* uVec = (double*)calloc(arrSize + 1, sizeof(double));
-    uVec[1] = arrSize; //* 2;
+    uVec[1] = arrSize * 2;
 
     return uVec;
 }
@@ -54,23 +57,24 @@ double* initvVec()
     return vVec;
 }
 
-
 int main()
+
 {
-    int* sizes = initSizes();
+    long* sizes = initSizes();
     double* uVec = inituVec();
     double* vVec = initvVec();
 
-    int i, j;
-    i = j = INDEX_POISON;
-    int currentMaxSize = 1;
-    double maxTime = 16;
+    long i, j;
+    i = j = -1;
+    long currentMaxSize = 1;
+    double maxTime = 250;
+    double doubleTime = 0.0;
     double currentTime = 0.0;
     double lambda = 0.005;
     // double kernelMax = kernel(currentMaxSize, currentMaxSize);
-    int volume = arrSize;
-    int N = arrSize;
-    int maxSize = N;
+    long volume = arrSize;
+    long N = arrSize;
+    long maxSize = N;
 
     srand(time(NULL));
 
@@ -82,46 +86,49 @@ int main()
     if (!output)
         throw 1;
 
-    double delta = 0.01;
-    double ifToGetPoint = 0;
+    double delta = maxTime / 250;
+    double ifToGetPoint = delta;
 
+    auto start = std::chrono::high_resolution_clock::now();
     while (currentTime < maxTime)
     {
+        // printf("time = %lf\n", currentTime);
+        currentTime += 2.0 * volume / (uTree[1] * vTree[1]);
+        ifToGetPoint -= 2.0 * volume / (uTree[1] * vTree[1]);
+
+        if (ifToGetPoint < 0)
+        {
+            printf("outing a point; time = %lf\n", currentTime);
+            double sum = 0.0;
+            output << currentTime << " ";
+            for (int it = 1; it < maxSize; it++)
+                sum += it * it * (sizes[it] + 0.0) / volume;
+
+            output << (currentMaxSize / sum) << std::endl;
+
+            ifToGetPoint = delta;
+        }
+
         do
         {
-        // printf("time = %lf\n", currentTime);
-            currentTime += 2.0 * volume * (1 + lambda)/ (uTree[1] * vTree[1]);
-            ifToGetPoint -= 2.0 * volume / (uTree[1] * vTree[1]);
+            i = find(uTree, uTree [1] * (rand() + 1.0) / RAND_MAX, maxSize); // bad!!
+            j = find(vTree, vTree [1] * (rand() + 1.0) / RAND_MAX, maxSize); // bad!!
 
-            if (ifToGetPoint <= 0)
+            // printf("finding i = %d, j = %d\n", i, j);
+
+            if ((i == j) && ((sizes[i] * (rand() + 1.0) / RAND_MAX) <= 1))
             {
-                printf("a second passed: time = %lf\n", currentTime);
-                double sum = 0.0;
-                for (int i = 1; i < maxSize; i++)
-                    // sum += i * i * (sizes[i] + 0.0) / volume;
-                    sum += i * (sizes[i] + 0.0);
-
-
-                output << currentTime << " " << (currentMaxSize + 0.0) / sum << std::endl;
-
-                ifToGetPoint = delta;
-            }
-
-            i = find(uTree, uTree [1] * (rand() + 1.0) / RAND_MAX, maxSize);
-            j = find(vTree, vTree [1] * (rand() + 1.0) / RAND_MAX, maxSize);
-
-            if ((i == j) && (sizes[i] * (rand() + 1.0) / RAND_MAX <= 1))
-            {
-                i = j = INDEX_POISON;
+                // printf("continuing\n");
+                i = j = -1;
                 continue;
             }
+        } while((i == -1) && (j == -1));
 
-        } while ((i == INDEX_POISON) && (j == INDEX_POISON));
+        double whichInteraction = (rand() + 1.0) / RAND_MAX;
 
-        double r = (rand() + 1.0) / RAND_MAX;
-
-        if ( (r > (lambda / (lambda + 1))) || ((i == j) && (i == 1)) )
+        if ((whichInteraction >= (lambda / (lambda + 1))) || ((i == j) && (i == 1)))
         {
+
             if (i + j > currentMaxSize)
                 currentMaxSize = i + j;
 
@@ -129,7 +136,7 @@ int main()
             {
                 int oldSize = maxSize;
                 maxSize *= 2;
-                sizes = (int *)realloc(sizes, maxSize * sizeof(int));
+                sizes = (long *)realloc(sizes, maxSize * sizeof(long));
                 uVec = (double *)realloc(uVec, maxSize * sizeof(double));
                 vVec = (double *)realloc(vVec, maxSize * sizeof(double));
                 for (int it = 0; it < oldSize; it++)
@@ -149,58 +156,67 @@ int main()
             sizes[i] -= 1;
             sizes[j] -= 1;
             sizes[i + j] += 1;
+            N--;
+
 
             update(uTree, i + j, updateU_I(uVec, i + j, sizes[i + j]), maxSize);
             update(vTree, i + j, updateV_I(vVec, i + j, sizes[i + j]), maxSize);
 
         }
-        #if 1
         else
         {
-            // printf("FRAGMENT!!!: i = %d, j = %d\n", i, j);
-            // printf("before: sizes(1): %d, sizes(i) = %d, sizes(j) = %d\n", sizes[1], sizes[i], sizes[j]);
-            // sleep(1);
+            sizes[1] += i + j - 2;
 
-            sizes[1] += (i + j - 2);
-            N += (i + j - 2);
             if (i != 1)
                 sizes[i] = 1;
             if (j != 1)
-            sizes[j] = 1;
+                sizes[j] = 1;
 
-            // printf("now: sizes(1): %d, sizes(i) = %d, sizes(j) = %d\n", sizes[1], sizes[i], sizes[j]);
-            // sleep(1);
+            N += i + j - 2;
 
             update(uTree, 1, updateU_I(uVec, 1, sizes[1]), maxSize);
             update(vTree, 1, updateV_I(vVec, 1, sizes[1]), maxSize);
 
-            // printf("uTree[1] = %lf, vTree[1] = %lf\n", uTree[1], vTree[1]);
         }
-        #endif
 
         update(uTree, i, updateU_I(uVec, i, sizes[i]), maxSize);
-        update(vTree, i, updateV_I(vVec, i, sizes[i]), maxSize);
         update(uTree, j, updateU_I(uVec, j, sizes[j]), maxSize);
+        update(vTree, i, updateV_I(vVec, i, sizes[i]), maxSize);
         update(vTree, j, updateV_I(vVec, j, sizes[j]), maxSize);
+
 
         if (N <= arrSize / 2)
         {
+            doubleTime = currentTime;
             N *= 2;
-            for (int i = 0; i < maxSize; i++)
+            for (int it = 0; it < maxSize; it++)
             {
-                sizes[i] *= 2;
-                uVec[i] *= 2;
-                vVec[i] *= 2;
+                sizes[it] *= 2;
+                uVec[it] *= 2;
+                vVec[it] *= 2;
+
+                uTree[it] *= 2;
+                uTree[it] *= 2;
+                vTree[it + maxSize] *= 2;
+                vTree[it + maxSize] *= 2;
             }
             volume *= 2;
         }
 
-        i = j = INDEX_POISON;
-
+        i = j = -1;
     }
 
-        std::cout << "kmax = " << currentMaxSize << " currentTime = " << currentTime << " volume = " << volume << std::endl;
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
+    std::cout << "kmax = " << currentMaxSize << " currentTime = " << currentTime << " volume = " << volume
+              << " worked for " << duration.count()  << " double time = " << doubleTime << " Moment_0: " << N << std::endl;
+
+    free(uVec);
+    free(vVec);
+
+    segmentTreeDtor(uTree);
+    segmentTreeDtor(vTree);
+    free(sizes);
     output.close();
-
 }
