@@ -14,6 +14,3 @@ treeTest: treeTest.cpp segmentTree.hpp
 
 oscilation: oscilation.cpp segmentTree.hpp
 	$(CXX) $(CXXFLAGS) oscilation.cpp -o oscilation
-
-osc: osc.cpp segmentTree.hpp
-	$(CXX) $(CXXFLAGS) osc.cpp -o osc
