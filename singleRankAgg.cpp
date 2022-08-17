@@ -8,10 +8,10 @@
 #include <iostream>
 #include <fstream>
 
-#include "segment_tree.hpp"
+#include "segmentTree.hpp"
 
 
-constexpr int arrSize = 1024 * 1024;
+constexpr int arrSize = 1024;
 
 inline double kernel (int i, int j)
 {
@@ -21,6 +21,11 @@ inline double kernel (int i, int j)
 inline double updateU_I (double* uVec, int index, int numOfClasters)
 {
     return uVec[index] = numOfClasters * index;
+}
+
+inline double updateV_I (double* vVec, int index, int numOfClasters)
+{
+    return vVec[index] = numOfClasters * index;
 }
 
 long* initSizes()
@@ -39,11 +44,20 @@ double* inituVec()
     return uVec;
 }
 
+double* initvVec()
+{
+    double* vVec = (double*)calloc(arrSize + 1, sizeof(double));
+    vVec[1] = arrSize;
+
+    return vVec;
+}
+
 int main()
 
 {
     long* sizes = initSizes();
     double* uVec = inituVec();
+    double* vVec = initvVec();
 
     long i, j;
     i = j = -1;
@@ -58,7 +72,8 @@ int main()
 
     srand(time(NULL));
 
-    double* tree = segmentTreeCtor(uVec, arrSize);
+    double* uTree = segmentTreeCtor(uVec, arrSize);
+    double* vTree = segmentTreeCtor(vVec, arrSize);
 
     std::ofstream output;
     output.open("first_task.txt");
@@ -72,8 +87,8 @@ int main()
     while (currentTime < maxTime)
     {
         // printf("time = %lf\n", currentTime);
-        currentTime += 2.0 * volume / (tree[1] * tree[1]);
-        ifToGetPoint -= 2.0 * volume / (tree[1] * tree[1]);
+        currentTime += 2.0 * volume / (uTree[1] * vTree[1]);
+        ifToGetPoint -= 2.0 * volume / (uTree[1] * vTree[1]);
 
         if (ifToGetPoint < 0)
         {
@@ -88,8 +103,8 @@ int main()
 
         do
         {
-            i = find(tree, tree [1] * (rand() + 1.0) / RAND_MAX, maxSize); // bad!!
-            j = find(tree, tree [1] * (rand() + 1.0) / RAND_MAX, maxSize); // bad!!
+            i = find(uTree, uTree [1] * (rand() + 1.0) / RAND_MAX, maxSize); // bad!!
+            j = find(vTree, vTree [1] * (rand() + 1.0) / RAND_MAX, maxSize); // bad!!
 
             // printf("finding i = %d, j = %d\n", i, j);
 
@@ -110,14 +125,18 @@ int main()
             maxSize *= 2;
             sizes = (long *)realloc(sizes, maxSize * sizeof(long));
             uVec = (double *)realloc(uVec, maxSize * sizeof(double));
+            vVec = (double *)realloc(vVec, maxSize * sizeof(double));
             for (int it = 0; it < oldSize; it++)
             {
                 sizes[it + oldSize] = 0;
                 uVec[it + oldSize] = 0;
+                vVec[it + oldSize] = 0;
             }
 
-            segmentTreeDtor(tree);
-            tree = segmentTreeCtor(uVec, maxSize);
+            segmentTreeDtor(vTree);
+            segmentTreeDtor(uTree);
+            uTree = segmentTreeCtor(uVec, maxSize);
+            vTree = segmentTreeCtor(vVec, maxSize);
             // throw "cry baby";
         }
 
@@ -126,20 +145,28 @@ int main()
         sizes[i + j] += 1;
         N--;
 
-        updateU_I(uVec, i, sizes[i]);
+        update(uTree, i, updateU_I(uVec, i, sizes[i]), maxSize);
+        update(uTree, j, updateU_I(uVec, j, sizes[j]), maxSize);
+        update(uTree, i + j, updateU_I(uVec, i + j, sizes[i + j]), maxSize);
 
-        update(tree, i, (sizes[i]) * i, maxSize);
-        update(tree, j, (sizes[j]) * j, maxSize);
-        update(tree, i + j, (sizes[i + j]) * (i + j), maxSize);
+        update(vTree, i, updateV_I(vVec, i, sizes[i]), maxSize);
+        update(vTree, j, updateV_I(vVec, j, sizes[j]), maxSize);
+        update(vTree, i + j, updateV_I(vVec, i + j, sizes[i + j]), maxSize);
 
         if (N <= arrSize / 2)
         {
             doubleTime = currentTime;
             N *= 2;
-            for (int i = 0; i < maxSize; i++)
+            for (int it = 0; it < maxSize; it++)
             {
-                sizes[i] *= 2;
-                uVec[i] *= 2;
+                sizes[it] *= 2;
+                uVec[it] *= 2;
+                vVec[it] *= 2;
+
+                uTree[it] *= 2;
+                uTree[it] *= 2;
+                vTree[it + maxSize] *= 2;
+                vTree[it + maxSize] *= 2;
             }
             volume *= 2;
         }
@@ -154,6 +181,10 @@ int main()
               << " worked for " << duration.count()  << " double time = " << doubleTime << " Moment_0: " << N << std::endl;
 
     free(uVec);
+    free(vVec);
+
+    segmentTreeDtor(uTree);
+    segmentTreeDtor(vTree);
     free(sizes);
     output.close();
 }

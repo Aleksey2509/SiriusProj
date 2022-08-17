@@ -1,4 +1,4 @@
-#include "segment_tree.hpp"
+#include "segmentTree.hpp"
 
 constexpr int arrsize = 8;
 int main()
